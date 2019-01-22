@@ -237,3 +237,95 @@ data_131 %>%
   map_dfc("p.value") %>% 
   round(3)
 
+# p.104 exercise
+
+#q1
+data_educ <- read_excel("data/data_student_class.xls", skip=2) %>% 
+  filter(지역 != "합계")
+
+data_educ %>% 
+  group_by(기간=as_factor(기간)) %>% 
+  summarize(원아수=mean(원아수)) %>% 
+  ggplot(aes(x=기간, y=원아수)) +
+  geom_line(group=1)
+
+#q2
+data_educ %>% 
+  group_by(지역) %>% 
+  summarize(원아수=mean(원아수)) %>% 
+  ggplot(aes(x=reorder(지역, 원아수), y=원아수)) +
+  geom_col(aes(fill = 지역)) +
+  coord_flip()
+
+#q3
+data_educ %>% 
+  group_by(기간, 지역) %>% 
+  summarize(학급당원아수=mean(학급당원아수),
+                  학급당학생수=mean(`학급당학생수..8`)) %>% 
+  split(.$지역) %>% 
+  map(~cor.test(~학급당원아수+`학급당학생수`, data=.x)) %>% 
+  map_df("estimate") %>% 
+  round(3)
+
+data_educ %>% 
+  group_by(기간, 지역) %>% 
+  summarize(학급당원아수=mean(학급당원아수),
+                  학급당학생수=mean(`학급당학생수..8`)) %>% 
+  split(.$지역) %>% 
+  map(~cor.test(~학급당원아수+`학급당학생수`, data=.x)) %>% 
+  map_df("p.value") %>% 
+  round(3) %>% 
+  gather(지역, p_value, 강남구:중랑구) %>% 
+  filter(p_value <=0.05) %>% 
+  ggplot(aes(x=지역, y=p_value)) +
+  geom_col(aes(fill=지역))
+
+#q4
+data_educ %>% 
+  group_by(기간, 지역) %>% 
+  summarize(학급당원아수=mean(학급당원아수),
+                  학급당학생수=mean(`학급당학생수..8`)) %>% 
+  split(.$기간) %>% 
+  map(~cor.test(~학급당원아수+학급당학생수, data=.x)) %>% 
+  map_df("estimate") %>% 
+  gather(기간, estimate, `2004`:`2016`) %>% 
+  ggplot(aes(x=기간, y=estimate)) +
+  geom_line(group=1)
+
+# 1-7 데이터 정렬하기
+
+seoul_library <- read_excel("data/data_library.xls")
+seoul_library %>% 
+  print(n=3)
+
+seoul_library %>% 
+  arrange(자치구)
+
+seoul_library %>% 
+  arrange(desc(자치구))
+
+seoul_library %>% 
+  filter(기간==2016) %>% 
+  arrange(desc(공공도서관), 자치구) 
+
+## 집단 구분 여부
+
+seoul_library %>% 
+  group_by(기간) %>% 
+  arrange(자치구, .by_group=TRUE)
+
+seoul_library %>% 
+  group_by(기간) %>% 
+  arrange(자치구, .by_group=FALSE)
+
+# p.110 quiz
+
+country <- read_excel("data/data_country.xlsx")
+
+country %>% 
+  arrange(POPULATION) %>% 
+  head(5)
+
+country %>% 
+  arrange(POPULATION) %>% 
+  tail(5)
