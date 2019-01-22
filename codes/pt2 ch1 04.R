@@ -211,3 +211,29 @@ by_data_131 <- data_131 %>%
 
 by_data_131
 
+summary(by_data_131)
+
+data_131 %>% 
+  split(.$PPGENDER) %>% 
+  map(~cor.test(~PPAGE + PPINCIMP, data=.x))
+
+data_131 %>% 
+  split(.$PPGENDER) %>% 
+  map(~cor.test(~PPAGE + PPINCIMP, data=.x)) %>% 
+  map_dfc("estimate") %>% 
+  round(3)
+
+data_131 %>% 
+  group_by(gender_reg4 = 10*PPGENDER + PPREG4) %>% 
+  split(.$gender_reg4) %>% 
+  map(~cor.test(~PPAGE+PPINCIMP, data=.x)) %>% 
+  map_dfc("estimate") %>% 
+  round(3)
+
+data_131 %>% 
+  group_by(gender_reg4=10*PPGENDER + PPREG4) %>% 
+  split(.$gender_reg4) %>% 
+  map(~cor.test(~PPAGE+PPINCIMP, data=.x)) %>% 
+  map_dfc("p.value") %>% 
+  round(3)
+
