@@ -177,3 +177,138 @@ data_131 %>%
     pol.middle=ifelse(IDEO == -1, NA, pol.middle)
   ) %>% 
   count(IDEO, pol.middle)
+
+
+## 다) 범주형 변수의 수준 간소화
+
+data_131 %>% 
+  mutate(
+    libcon3 = ifelse(IDEO==-1, NA,
+                     ifelse(IDEO <= 2, 1,
+                            ifelse(IDEO >= 6, 3, 2)))
+  ) %>% 
+  count(IDEO, libcon3)
+
+data_131 %>% 
+  mutate(
+    libcon3 = cut(IDEO, c(-Inf, 0, 2, 5, Inf), c(NA, 1:3))
+  ) %>% 
+  count(IDEO, libcon3)
+
+data_131 <- data_131 %>% 
+  mutate(
+    IDEO2 = as.character(as_factor(IDEO))
+  )
+
+data_131 %>% 
+  mutate(
+    libcon3 = ifelse(IDEO2 == "Refused", NA, IDEO2),
+    libcon3 = fct_collapse(libcon3,
+                           "진보"=c("Liberal", "Extremely liberal"),
+                           "중도"=c("Moderate, middle of the road",
+                                  "Slightly liberal", "Slightly conservative"),
+                           "보수"=c("Conservative", "Extremely conservative"))
+  ) %>% 
+  count(libcon3)
+
+data_131 %>% 
+  count(as_factor(REL1)) %>% 
+  arrange(desc(n))
+
+data_131 %>% 
+  mutate(
+    religion5 = ifelse(REL1 %in% c(4, 5, 6, 7, 8, 9, 10, 11, 12), 14, REL1),
+    religion5 = ifelse(REL1==-1, NA, religion5),
+    religion5 = labelled(religion5,
+                         c(침례교=1, 프로테스탄트=2, 가톨릭=3, 무종교=13, 기타종교=14))
+  ) %>% 
+  count(as_factor(religion5))
+
+data_131 %>% 
+  mutate(
+    religion5 = as_factor(REL1),
+    religion5 = fct_lump(religion5, n=4),
+    religion5 = ifelse(REL1==-1, NA, as.character(religion5)),
+    religion5 = str_extract(religion5, "[[:alpha:]]{1,}")
+  ) %>% 
+  count(religion5)
+
+## 라) 범주형 변수의 수준을 재배열
+
+data_131 <- data_131 %>% 
+  mutate(
+    religion5 = as_factor(REL1),
+    religion5 = fct_lump(religion5, n=4),
+    religion5 = ifelse(REL1 == -1, NA, as.character(religion5)),
+    religion5 = str_extract(religion5, "[[:alpha:]]{1,}")
+  )
+
+data_131 %>% 
+  count(religion5)
+
+data_131 %>% 
+  mutate(
+    religion5 = fct_relevel(religion5, "None")
+  ) %>% 
+  count(religion5)
+
+# None 만 맨 뒤로 옮기기 위해서
+
+data_131 %>% 
+  mutate(
+    religion5 = fct_relevel(religion5, "None", after=Inf)
+  ) %>% 
+  count(religion5)
+
+data_131 %>% 
+  mutate(
+    religion5 = fct_relevel(religion5, "None", "Catholic", "Protestant", "Baptist", "Other")
+  ) %>% 
+  count(religion5)
+
+myresult <- data_131 %>% 
+  mutate(
+    religion5R = fct_infreq(religion5)
+  )
+
+myresult %>% 
+  count(religion5R)
+
+g1 <- myresult %>% 
+  drop_na(religion5) %>% 
+  ggplot(aes(x=religion5))+
+  geom_bar()+
+  labs(x="Religions, five groups", y="Number of respondents")
+
+g2 <- myresult %>% 
+  drop_na(religion5R) %>% 
+  ggplot(aes(x=religion5R)) +
+  geom_bar()+
+  labs(x="Religions, five groups", y="Number of respondents")
+
+gridExtra::grid.arrange(g1, g2, nrow=1, ncol=2)
+
+by_data_131 <- data_131 %>% 
+  mutate(
+    religion5R=fct_reorder(religion5, PPAGE, fun=mean, .desc=TRUE)
+  )
+
+myresult <- by_data_131 %>% 
+  group_by(religion5R) %>% 
+  summarize(mean(PPAGE))
+
+myresult
+
+g1 <- myresult %>% drop_na() %>% 
+  ggplot(aes(x=religion5R)) +
+  geom_bar() +
+  stat_summary_bin(aes(y=`mean(PPAGE)`), fun.y='mean', geom='bar') +
+  labs(x="Religions", y="Averaged Age")
+
+g2 <- myresult %>% drop_na() %>% 
+  ggplot(aes(x=fct_rev(religion5R))) +
+  geom_bar() +
+  stat_summary_bin(aes(y=`mean(PPAGE)`), fun.y='mean', geom='bar') +
+  labs(x="Religions", y="Averaged Age")
+
+gridExtra::grid.arrange(g1, g2, nrow=1, ncol=2)
