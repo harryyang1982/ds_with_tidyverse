@@ -312,3 +312,241 @@ g2 <- myresult %>% drop_na() %>%
   labs(x="Religions", y="Averaged Age")
 
 gridExtra::grid.arrange(g1, g2, nrow=1, ncol=2)
+
+## 마) 연속형 변수를 범주형 변수로 리코딩
+
+data_131 %>% 
+  mutate(
+    generation=cut(PPAGE,
+                   c(10, 19, 29, 39, 49, 59, 69, 79, Inf),
+                   c("10s", "20s", "30s", "40s", "50s", "60s", "70s", "80s"))
+  ) %>% 
+  count(generation)
+
+data_131 %>% 
+  mutate(
+    gen_width10 = cut_width(PPAGE, width=10)
+  ) %>% 
+  count(gen_width10)
+
+data_131 %>% 
+  mutate(
+    gen_width10=cut_width(PPAGE, width=10, boundary=0, closed='left')
+  ) %>% 
+  count(gen_width10)
+
+data_131 %>% 
+  mutate(
+    gen_interval4 = cut_interval(PPAGE, n=4)
+  ) %>% 
+  count(gen_interval4)
+
+data_131 %>% 
+  mutate(
+    gen_number4=cut_number(PPAGE, n=4)
+  ) %>% 
+  count(gen_number4)
+
+## 바) 변수의 데이터 타입 변환
+
+temporary <- data_131 %>% 
+  mutate(
+    sex_fct1 = as.factor(PPGENDER),
+    sex_chr1 = as.character(PPGENDER),
+    sex_fct2 = as_factor(PPGENDER),
+    sex_chr2 = as.character(as_factor(PPGENDER))
+  )
+
+temporary %>% 
+  count(sex_fct1)
+
+temporary %>% 
+  count(sex_fct2)
+
+temporary %>% 
+  count(sex_chr1)
+
+temporary %>% 
+  count(sex_chr2)
+
+# 연속형 변수: as.integer(), as.double()
+
+temporary <- tibble(
+  x1=as.integer(1:3),
+  x2=as.double(1:3),
+  x3=as.double(1+0.1*(1:3))
+)
+
+temporary
+
+temporary %>% 
+  mutate(
+    x1.dbl = as.double(x1),
+    x2.int = as.integer(x2),
+    x3.int = as.integer(x3)
+  )
+
+temporary %>% 
+  mutate(
+    x2.chr = as.factor(x2),
+    x3.chr = as.character(x3)
+  )
+
+temporary <- data_131 %>% 
+  filter(IDEO>0) %>% 
+  mutate(
+    ideo_chr = as.character(as_factor(IDEO)),
+    ideo_fct = as_factor(IDEO)
+  ) %>% 
+  select(ideo_chr, ideo_fct)
+
+temporary
+
+temporary <- temporary %>% 
+  mutate(
+    ideo_chr_dbl = as.double(ideo_chr),
+    ideo_fct_dbl = as.double(ideo_fct)
+  )
+
+temporary
+
+temporary %>% count(ideo_fct, ideo_fct_dbl)
+
+# ideo_fct 변수의 수준들이 어떤 순서를 갖는지 체크
+# %$%를 사용한 것 주의(행렬 데이터가 아닌 변수 단위인 경우 사용하는 파이프 오퍼레이터)
+library(magrittr)
+temporary %$% fct_unique(ideo_fct)
+
+temporary %>% 
+  mutate(
+    ideo_chr_fct = as_factor(ideo_chr),
+    ideo_chr_fct_dbl = as.double(ideo_chr_fct)
+  ) %>% 
+  count(ideo_chr_fct, ideo_chr_fct_dbl)
+
+# 노가다로 수치 부여
+temporary %>% 
+  mutate(
+    ideo_chr_dbl = NA,
+    ideo_chr_dbl=ifelse(ideo_chr=="Extremely liberal", 1, ideo_chr_dbl),
+    ideo_chr_dbl=ifelse(ideo_chr=="Liberal", 2, ideo_chr_dbl),
+    ideo_chr_dbl=ifelse(ideo_chr=="Slightly liberal", 3, ideo_chr_dbl),
+    ideo_chr_dbl=ifelse(ideo_chr=="Moderate, middle of the road", 4, ideo_chr_dbl),
+    ideo_chr_dbl=ifelse(ideo_chr=="Slightly conservative", 5, ideo_chr_dbl),
+    ideo_chr_dbl=ifelse(ideo_chr=="Conservative", 6, ideo_chr_dbl),
+    ideo_chr_dbl=ifelse(ideo_chr=="Extremely conservative", 7, ideo_chr_dbl)
+  ) %>% 
+  count(ideo_chr, ideo_chr_dbl)
+
+# 텍스트 형태의 변수 처리
+
+world_country <- read_excel("data/data_country.xlsx")
+world_country
+
+my_data <- world_country %>% 
+  separate(`GDP $USD`, into = c("GDP", "USD"), sep = " ", remove = F) %>% 
+  mutate(gdp_dbl = as.double(GDP),
+         gdp_unit = USD,
+         gdp_unit = ifelse(USD == "Million", 10^6,
+                           ifelse(USD == "Billion", 10^9,
+                                  ifelse(USD == "Trillion", 10^12, gdp_unit))),
+         gdp_unit = as.double(gdp_unit),
+         gdp_total = gdp_dbl * gdp_unit)
+
+my_data %>% 
+  select(`GDP $USD`, gdp_total)
+
+my_data %>% 
+  summarize(gdp_total = mean(gdp_total, na.rm = TRUE))
+
+library(extrafont)
+theme_update(text=element_text(family="NanumGothic"))
+
+my_data %>% 
+  ggplot(aes(x=log10(gdp_total))) +
+  geom_histogram(na.rm = T) +
+  labs(x = "국내 총생산(GDP, 미국달러로 환산된 값을 상용로그로 전환")
+
+my_data <- my_data %>% 
+  mutate(
+    country_name = str_count(COUNTRY, "")
+  )
+
+my_data %>% 
+  summarize(min_name=min(country_name, na.rm=T),
+            max_name=max(country_name, na.rm=T))
+
+my_data %>% 
+  filter(country_name==4|country_name==32) %>% 
+  select(COUNTRY)
+
+my_data <- my_data %>% 
+  mutate(
+    country_name = str_count(COUNTRY, "[[:alpha:]]")
+  )
+my_data %>% count(country_name)
+
+my_data <- my_data %>%
+  mutate(country_word = 1 + str_count(COUNTRY, " "))
+
+my_data %>% count(country_word)
+
+my_data <- my_data %>% 
+  mutate(
+    include_stan = str_detect(COUNTRY, "stan$")
+  )
+
+my_data %>% 
+  filter(include_stan) %>% 
+  select(include_stan, COUNTRY)
+
+my_data %>% 
+  mutate(
+    include_south=str_detect(COUNTRY, "^South")
+  ) %>% 
+  filter(include_south) %>% 
+  select(include_south, COUNTRY)
+
+# 개인 함수를 이용한 리코딩
+refused_to_missing <- function(myvariable) {
+  ifelse(myvariable == -1, NA, myvariable)
+}
+
+data_131 <- read_spss("data/data_TESS3_131.sav")
+
+data_131 %>% 
+  mutate(
+    ideo2=refused_to_missing(IDEO)
+  ) %>% 
+  count(IDEO, ideo2)
+
+data_131_2 <- data_131 %>% 
+  mutate_if(
+    is.double,
+    funs(refused_to_missing)
+  )
+data_131_2 %>% 
+  count(IDEO)
+
+data_131_2 %>% 
+  count(Q1)
+
+seven_to_collapse <- function(myvariable){
+  myvariable = ifelse(myvariable == -1, NA, myvariable)
+  myvariable = cut(myvariable, c(0, 3, 4, 7), 1:3)
+}
+
+data_131 %>% 
+  mutate(
+    Q1_3 = seven_to_collapse(Q1)
+  ) %>% 
+  count(Q1, Q1_3)
+
+data_131_2 <- data_131 %>% 
+  mutate_at(
+    vars(Q1, Q2, Q3, Q4, IDEO, PARTY7),
+    funs(seven_to_collapse)
+  )
+
+data_131_2 %>% 
+  count(Q3)
