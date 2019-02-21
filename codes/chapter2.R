@@ -722,3 +722,80 @@ mydata %>%
   ) %>% 
   filter(duration != survey_minute) %>% 
   select(starts_with("tm"), duration, survey_minute)
+
+# p.190 exercise
+
+songs <- read_csv("data/data_1000songs.csv")
+songs
+
+#1
+songs %>% 
+  mutate(    start_yr = year(tm_start),
+             start_mt = month(tm_start),
+             start_dy = day(tm_start),
+             start_hr = hour(tm_start),
+             start_mn = minute(tm_start),
+             start_sc = second(tm_start),
+             end_yr = year(tm_end),
+             end_mt = month(tm_end),
+             end_dy = day(tm_end),
+             end_hr = hour(tm_end),
+             end_mn = minute(tm_end),
+             end_sc = second(tm_end)
+  ) %>% 
+  count(start_mt)
+
+#2
+songs %>% 
+  mutate(duration = as.double(tm_end - tm_start)) %>% 
+  summarize(max(duration),
+            min(duration))
+
+#2-4 변수이름 재설정
+library(readxl)
+seoul_library <- read_excel("data/data_library.xls")
+seoul_library %>% 
+  print(n = 2)
+
+seoul_library %>% 
+  rename(
+    year_id = 기간,
+    district_id = 자치구,
+    lib_total = 계,
+    lib_national = 국립도서관,
+    lib_public = 공공도서관,
+    lib_university = 대학도서관,
+    lib_special = 전문도서관
+  ) %>% 
+  print(n=2)
+
+mylabels <- c("year_id", "district_id", "lib_total", "lib_national",
+           "lib_public", "lib_university", "lib_special")
+
+names(seoul_library) <- mylabels
+seoul_library %>% 
+  print(n=2)
+
+seoul_library <- read_excel("data/data_library.xls")
+seoul_library %>% 
+  print(n=2)
+
+names(seoul_library) <- str_replace(names(seoul_library), "도서관", "_lib")
+seoul_library %>% print(n=2)
+
+names(seoul_library)[3] <- "계_lib"
+seoul_library %>% print(n=2)
+
+# p.195 exercise
+popul <- read_excel("data/data_population.xls")
+
+mypopu <- popul %>% 
+  rename(year=기간,
+         district="구분..2",
+         resident=`구분..3`,
+         total=계)
+
+names(mypopu) <- str_replace(names(mypopu), "세", "")
+names(mypopu) <- str_replace(names(mypopu), "~", "")
+names(mypopu) <- paste("age", names(mypopu), sep="")
+mypopu
