@@ -550,3 +550,175 @@ data_131_2 <- data_131 %>%
 
 data_131_2 %>% 
   count(Q3)
+
+# p.178 exercise
+
+#1
+
+mydata <- read_dta("data/data_gss_panel06.dta")
+
+mydata %>% 
+  mutate(child_re = ifelse(childs_1 >=0 & childs_1 <= 1, "below 1", "above 2")) %>% 
+  select(childs_1, child_re) %>% 
+  count(child_re)
+
+#2
+
+mydata %>% 
+  mutate(race_re = ifelse(race_1 == 1, "white", "non white")) %>% 
+  count(race_re)
+
+#3
+mydata %>% 
+  count(relactiv_1)
+
+mydata %>% 
+  mutate(rel_re = cut(relactiv_1, c(0, 4, 6, 9, Inf), c(1:4))) %>% 
+  count(rel_re)
+
+#4
+mydata %>% 
+  mutate(race_1 = as_factor(race_1),
+         race_1 = ifelse(race_1 == "white", "white", "non_white"),
+         childs_1 = cut(childs_1, c(0, 2, 4, 6, Inf), c(1:4))) %>% 
+  count(race_1, childs_1) %>% 
+  spread(race_1, n) %>% 
+  na.omit(childs_1) %>% 
+  select(childs_1, white, everything())
+  
+#5
+mydata %>% 
+  mutate(caremost_1 = as_factor(caremost_1),
+         caremost_re = NA,
+         caremost_re = ifelse(str_detect(caremost_1, "bears|seals"), "animal", caremost_re),
+         caremost_re = ifelse(str_detect(caremost_1, "sea|cap"), "climate", caremost_re),
+         caremost_re = ifelse(str_detect(caremost_1, "inuit"), "inuit", caremost_re)) %>% 
+  count(caremost_re)
+  
+#6
+foraid <- read_excel("data/data_foreign_aid.xlsx")
+foraid %>% 
+  separate(total_development_aid, into=c("td", "billion"), sep = " ") %>% 
+  mutate_at(vars(2, 4, 5),
+            funs(as.double(str_replace_all(., "\\$", "")))) %>% 
+  mutate(billion = ifelse(billion == "billion", 10^9,
+                          ifelse(billion == "million", 10^6,
+                                 ifelse(billion == "triilion", 10^12, billion)))) %>% 
+  mutate(total_development_aid = td*billion) %>% 
+  select(donor, total_development_aid, development_aid_per_capita, GDP_percent)
+
+#7
+tess <- read_sav("data/data_TESS3_131.sav")
+tess
+
+make_na <- function(variable){
+  variable = ifelse(variable %in% c(1:7), variable, NA)
+}
+
+#7-1
+tess %>% 
+  mutate_at(vars(Q1, Q2, Q3),
+            funs(make_na)) %>% 
+  count(Q3)
+
+make_rev <- function(variable){
+  variable = ifelse(variable == -1, NA, variable)
+  variable = 8 - variable
+}
+
+tess %>% 
+  mutate_at(vars(Q1, Q2, Q3),
+            funs(make_rev)) %>% 
+  count(Q3)
+
+#8
+
+recode2 <- function(variable){
+  variable = ifelse(variable == 4, 0,
+                    ifelse(variable == 3 | variable == 5, 1,
+                           ifelse(variable == 2 | variable == 6, 2,
+                                  ifelse(variable == 1 | variable == 7, 3, variable ))))
+}
+
+tess %>% 
+  mutate_at(vars(Q1, Q2, Q3),
+            funs(make_na)) %>% 
+  mutate_at(vars(Q1, Q2, Q3),
+            funs(recode2)) %>% 
+  count(Q1)
+
+#2-3 날짜 및 시간 변수
+library(tidyverse)
+library(haven)
+
+data_131 <- read_sav("data/data_TESS3_131.sav")
+mydata <- data_131 %>% 
+  select(starts_with("tm_"), duration, PPAGE, PPEDUC)
+
+mydata
+
+library(lubridate)
+
+mydata <- mydata %>% 
+  mutate(
+    start_yr = year(tm_start),
+    start_mt = month(tm_start),
+    start_dy = day(tm_start),
+    start_hr = hour(tm_start),
+    start_mn = minute(tm_start),
+    start_sc = second(tm_start),
+    end_yr = year(tm_finish),
+    end_mt = month(tm_finish),
+    end_dy = day(tm_finish),
+    end_hr = hour(tm_finish),
+    end_mn = minute(tm_finish),
+    end_sc = second(tm_finish)
+  )
+
+mydata %>% 
+  select(starts_with("start_"), starts_with("end_"))
+
+mydata <- mydata %>% 
+  mutate(survey_second = as.double(tm_finish - tm_start))
+
+g1 <- mydata %>% 
+  ggplot(aes(x=survey_second)) +
+  geom_histogram(bins=50)+
+  labs(x="설문소요시간(단위: 초")
+g2 <- mydata %>% 
+  ggplot(aes(x=log10(survey_second))) +
+  geom_histogram(bins=50)+
+  labs(x="상용로그 전환 설문소요시간(단위: 초")
+
+gridExtra::grid.arrange(g1, g2, nrow=1, ncol=2)
+
+mydata %>% 
+  mutate(
+    good_survey = ifelse(survey_second > 10^4.5 | survey_second < 10^2, F, T)
+  ) %>% 
+  group_by(good_survey) %>% 
+  summarize(mean(PPAGE), 
+            mean(PPEDUC),
+            n())
+
+mydata <- mydata %>% 
+  mutate(
+    start_time = make_datetime(start_yr, start_mt, start_dy, start_hr, start_mn),
+    end_time = make_datetime(end_yr, end_mt, end_dy, end_hr, end_mn)
+  )
+mydata %>% 
+  select(start_time, end_time)
+
+mydata %>% 
+  mutate(
+    survey_minute = as.double(end_time - start_time)
+  ) %>% 
+  filter(duration != survey_minute) %>% 
+  select(starts_with("tm"), duration, survey_minute)
+
+mydata %>% 
+  mutate(
+    survey_minute = floor(as.double(tm_finish - tm_start)/60)
+  ) %>% 
+  filter(duration != survey_minute) %>% 
+  select(starts_with("tm"), duration, survey_minute)
