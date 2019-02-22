@@ -86,3 +86,39 @@ mydata %>%
 mydata %>% 
   anti_join(filter_data, by="district") %>% 
   count(district)
+
+# p.227 exercise
+library(tidyverse)
+library(readxl)
+foreign_aids <- read_excel("data/data_foreign_aid.xlsx")
+data_country <- read_excel("data/data_country.xlsx")
+
+
+#q1
+foreign_aids <- foreign_aids %>% 
+  rename(ID=donor)
+
+data_country <- data_country %>% 
+  rename(ID=COUNTRY)
+
+fd1 <- full_join(foreign_aids, data_country)
+fd2 <- inner_join(foreign_aids, data_country)
+
+fd1
+
+#q2
+foreign_aids %>% 
+  anti_join(data_country)
+
+#q3
+
+filter_data <- tibble(
+  ID = "Slovak Republic"
+)
+
+
+foreign_aids <- foreign_aids %>% 
+  mutate(ID = str_replace(ID, "Slovakia", "Slovak Republic"))
+
+fd3 <- foreign_aids %>% 
+  full_join(data_country)
